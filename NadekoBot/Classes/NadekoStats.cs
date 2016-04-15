@@ -1,8 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using NadekoBot.Extensions;
-using NadekoBot.Modules;
 using NadekoBot.Modules.Administration.Commands;
+using NadekoBot.Modules.Music;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -50,25 +50,25 @@ namespace NadekoBot
             TextChannelsCount = channelsArray.Count(c => c.Type == ChannelType.Text);
             VoiceChannelsCount = channelsArray.Count() - TextChannelsCount;
 
-            NadekoBot.Client.JoinedServer += (s, e) =>
+            NadekoBot.Client.JoinedServer += async (s, e) =>
             {
                 try
                 {
                     ServerCount++;
                     TextChannelsCount += e.Server.TextChannels.Count();
                     VoiceChannelsCount += e.Server.VoiceChannels.Count();
-                    SendUpdateToCarbon();
+                    await SendUpdateToCarbon().ConfigureAwait(false);
                 }
                 catch { }
             };
-            NadekoBot.Client.LeftServer += (s, e) =>
+            NadekoBot.Client.LeftServer += async (s, e) =>
             {
                 try
                 {
                     ServerCount--;
                     TextChannelsCount -= e.Server.TextChannels.Count();
                     VoiceChannelsCount -= e.Server.VoiceChannels.Count();
-                    SendUpdateToCarbon();
+                    await SendUpdateToCarbon().ConfigureAwait(false);
                 }
                 catch { }
             };
@@ -139,7 +139,7 @@ namespace NadekoBot
         public Task LoadStats() =>
             Task.Run(() =>
             {
-                var songs = Music.MusicPlayers.Count(mp => mp.Value.CurrentSong != null);
+                var songs = MusicModule.MusicPlayers.Count(mp => mp.Value.CurrentSong != null);
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine("`Author: Kwoth` `Library: Discord.Net`");
                 sb.AppendLine($"`Bot Version: {BotVersion}`");
@@ -154,7 +154,7 @@ namespace NadekoBot
                 sb.AppendLine($"`Message queue size: {NadekoBot.Client.MessageQueue.Count}`");
                 sb.Append($"`Greeted {ServerGreetCommand.Greeted} times.`");
                 sb.AppendLine($" `| Playing {songs} songs, ".SnPl(songs) +
-                              $"{Music.MusicPlayers.Sum(kvp => kvp.Value.Playlist.Count)} queued.`");
+                              $"{MusicModule.MusicPlayers.Sum(kvp => kvp.Value.Playlist.Count)} queued.`");
                 sb.AppendLine($"`Heap: {Heap(false)}`");
                 statsCache = sb.ToString();
             });
@@ -182,7 +182,7 @@ namespace NadekoBot
                                                                         .Sum(x => x.Users.Count(u => u.Status == UserStatus.Online)));
                     var connectedServers = NadekoBot.Client.Servers.Count();
 
-                    Classes.DbHandler.Instance.InsertData(new Classes._DataModels.Stats
+                    Classes.DbHandler.Instance.InsertData(new DataModels.Stats
                     {
                         OnlineUsers = onlineUsers,
                         RealOnlineUsers = realOnlineUsers,
@@ -207,7 +207,7 @@ namespace NadekoBot
                 try
                 {
                     commandsRan++;
-                    Classes.DbHandler.Instance.InsertData(new Classes._DataModels.Command
+                    Classes.DbHandler.Instance.InsertData(new DataModels.Command
                     {
                         ServerId = (long)e.Server.Id,
                         ServerName = e.Server.Name,

@@ -3,13 +3,22 @@ using Discord.Audio;
 using Discord.Commands;
 using Discord.Modules;
 using NadekoBot.Classes.JSONModels;
-using NadekoBot.Commands;
-using NadekoBot.Modules;
+using NadekoBot.Classes.Help.Commands;
 using NadekoBot.Modules.Administration;
+using NadekoBot.Modules.ClashOfClans;
+using NadekoBot.Modules.Conversations;
 using NadekoBot.Modules.Gambling;
 using NadekoBot.Modules.Games;
+using NadekoBot.Modules.Games.Commands;
+using NadekoBot.Modules.Help;
+using NadekoBot.Modules.Music;
+using NadekoBot.Modules.NSFW;
+using NadekoBot.Modules.Permissions;
+using NadekoBot.Modules.Permissions.Classes;
 using NadekoBot.Modules.Pokemon;
+using NadekoBot.Modules.Searches;
 using NadekoBot.Modules.Translator;
+using NadekoBot.Modules.Trello;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -28,6 +37,7 @@ namespace NadekoBot
         public static LocalizedStrings Locale { get; set; } = new LocalizedStrings();
         public static string BotMention { get; set; } = "";
         public static bool Ready { get; set; } = false;
+        public static bool IsBot { get; set; } = false;
 
         private static Channel OwnerPrivateChannel { get; set; }
 
@@ -90,7 +100,7 @@ namespace NadekoBot
             }
 
             //if password is not entered, prompt for password
-            if (string.IsNullOrWhiteSpace(Creds.Password) && !string.IsNullOrWhiteSpace(Creds.Token))
+            if (string.IsNullOrWhiteSpace(Creds.Password) && string.IsNullOrWhiteSpace(Creds.Token))
             {
                 Console.WriteLine("Password blank. Please enter your password:\n");
                 Creds.Password = Console.ReadLine();
@@ -163,19 +173,19 @@ namespace NadekoBot
 
             //install modules
             modules.Add(new AdministrationModule(), "Administration", ModuleFilter.None);
-            modules.Add(new Help(), "Help", ModuleFilter.None);
+            modules.Add(new HelpModule(), "Help", ModuleFilter.None);
             modules.Add(new PermissionModule(), "Permissions", ModuleFilter.None);
             modules.Add(new Conversations(), "Conversations", ModuleFilter.None);
             modules.Add(new GamblingModule(), "Gambling", ModuleFilter.None);
             modules.Add(new GamesModule(), "Games", ModuleFilter.None);
-            modules.Add(new Music(), "Music", ModuleFilter.None);
-            modules.Add(new Searches(), "Searches", ModuleFilter.None);
-            modules.Add(new NSFW(), "NSFW", ModuleFilter.None);
-            modules.Add(new ClashOfClans(), "ClashOfClans", ModuleFilter.None);
+            modules.Add(new MusicModule(), "Music", ModuleFilter.None);
+            modules.Add(new SearchesModule(), "Searches", ModuleFilter.None);
+            modules.Add(new NSFWModule(), "NSFW", ModuleFilter.None);
+            modules.Add(new ClashOfClansModule(), "ClashOfClans", ModuleFilter.None);
             modules.Add(new PokemonModule(), "Pokegame", ModuleFilter.None);
             modules.Add(new TranslatorModule(), "Translator", ModuleFilter.None);
             if (!string.IsNullOrWhiteSpace(Creds.TrelloAppKey))
-                modules.Add(new Trello(), "Trello", ModuleFilter.None);
+                modules.Add(new TrelloModule(), "Trello", ModuleFilter.None);
 
             //run the bot
             Client.ExecuteAndWait(async () =>
@@ -185,7 +195,11 @@ namespace NadekoBot
                     if (string.IsNullOrWhiteSpace(Creds.Token))
                         await Client.Connect(Creds.Username, Creds.Password);
                     else
+                    {
                         await Client.Connect(Creds.Token);
+                        IsBot = true;
+                    }
+                    Console.WriteLine(NadekoBot.Client.CurrentUser.Id);
                 }
                 catch (Exception ex)
                 {
@@ -197,6 +211,8 @@ namespace NadekoBot
                     Console.ReadKey();
                     return;
                 }
+
+                //await Task.Delay(90000);
                 Console.WriteLine("-----------------");
                 Console.WriteLine(await NadekoStats.Instance.GetStats());
                 Console.WriteLine("-----------------");
@@ -218,9 +234,7 @@ namespace NadekoBot
                     if (string.IsNullOrWhiteSpace(request.Content))
                         e.Cancel = true;
                 };
-
-                //await Task.Delay(90000);
-                Classes.Permissions.PermissionsHandler.Initialize();
+                PermissionsHandler.Initialize();
                 NadekoBot.Ready = true;
             });
             Console.WriteLine("Exiting...");
@@ -245,7 +259,7 @@ namespace NadekoBot
                 if (ConfigHandler.IsBlackListed(e))
                     return;
 
-                if (!NadekoBot.Config.DontJoinServers)
+                if (!NadekoBot.Config.DontJoinServers && !IsBot)
                 {
                     try
                     {

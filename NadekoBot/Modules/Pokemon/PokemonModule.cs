@@ -1,10 +1,10 @@
 using Discord.Commands;
 using Discord.Modules;
 using NadekoBot.Classes;
-using NadekoBot.Classes._DataModels;
+using NadekoBot.DataModels;
 using NadekoBot.Classes.JSONModels;
-using NadekoBot.Classes.Permissions;
 using NadekoBot.Extensions;
+using NadekoBot.Modules.Permissions.Classes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
